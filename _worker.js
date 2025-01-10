@@ -20,7 +20,7 @@ function getNextServer(servers) {
 
 // 并行模式：对所有服务器发起请求，返回第一个成功的响应
 async function fetchInParallel(request, servers) {
-  const promises = servers.map(server => {
+  const promises = servers.map(async (server) => {
     let url = new URL(request.url);
     url.hostname = server;
 
@@ -28,19 +28,22 @@ async function fetchInParallel(request, servers) {
     let newRequest = new Request(url.toString(), {
       method: request.method,
       headers: request.headers,
-      body: request.clone().body,
+      body: request.body,  // 不需要克隆 body，这样请求能正常发送
       redirect: request.redirect
     });
 
-    // 发出请求，并捕获失败的情况
-    return fetch(newRequest).catch(err => {
+    try {
+      // 发出请求，并返回第一个成功的响应
+      const response = await fetch(newRequest);
+      return response.ok ? response : null;
+    } catch (err) {
       console.error(`Server ${server} failed:`, err);
       return null; // 如果请求失败，返回 null
-    });
+    }
   });
 
   // 使用 Promise.any() 并行请求，选择第一个成功响应的结果
-  return Promise.any(promises);
+  return Promise.any(promises).catch(() => null); // 捕获所有请求失败的情况
 }
 
 // 处理请求
@@ -63,7 +66,7 @@ async function handleRequest(request, env) {
     let newRequest = new Request(url.toString(), {
       method: request.method,
       headers: request.headers,
-      body: request.clone().body,
+      body: request.body, // 同样，不需要克隆 body
       redirect: request.redirect
     });
 
