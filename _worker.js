@@ -1,8 +1,7 @@
-export async function onRequest(context) {
-  const { request, env } = context; // 获取请求和环境变量
-  console.log('Request URL:', request.url); // 打印请求 URL
-  console.log('Request Headers:', request.headers); // 打印请求头部
-  return handleRequest(request, env);
+export default {
+  async fetch(request, env, ctx) {
+    return handleRequest(request, env);
+  }
 }
 
 // 记录当前的服务器索引
@@ -21,7 +20,7 @@ function getNextServer(servers) {
 
 // 并行模式：对所有服务器发起请求，返回第一个成功的响应
 async function fetchInParallel(request, servers) {
-  const promises = servers.map(async (server) => {
+  const promises = servers.map(server => {
     let url = new URL(request.url);
     url.hostname = server;
 
@@ -29,22 +28,19 @@ async function fetchInParallel(request, servers) {
     let newRequest = new Request(url.toString(), {
       method: request.method,
       headers: request.headers,
-      body: request.body,  // 不需要克隆 body，这样请求能正常发送
+      body: request.clone().body,
       redirect: request.redirect
     });
 
-    try {
-      // 发出请求，并返回第一个成功的响应
-      const response = await fetch(newRequest);
-      return response.ok ? response : null;
-    } catch (err) {
+    // 发出请求，并捕获失败的情况
+    return fetch(newRequest).catch(err => {
       console.error(`Server ${server} failed:`, err);
       return null; // 如果请求失败，返回 null
-    }
+    });
   });
 
   // 使用 Promise.any() 并行请求，选择第一个成功响应的结果
-  return Promise.any(promises).catch(() => null); // 捕获所有请求失败的情况
+  return Promise.any(promises);
 }
 
 // 处理请求
@@ -67,7 +63,7 @@ async function handleRequest(request, env) {
     let newRequest = new Request(url.toString(), {
       method: request.method,
       headers: request.headers,
-      body: request.body, // 同样，不需要克隆 body
+      body: request.clone().body,
       redirect: request.redirect
     });
 
