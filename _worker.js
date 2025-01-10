@@ -1,5 +1,7 @@
 export async function onRequest(context) {
   const { request, env } = context; // 获取请求和环境变量
+  console.log('Request URL:', request.url); // 打印请求 URL
+  console.log('Request Headers:', request.headers); // 打印请求头部
   return handleRequest(request, env);
 }
 
