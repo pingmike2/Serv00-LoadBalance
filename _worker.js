@@ -1,7 +1,6 @@
-export default {
-  async fetch(request, env, ctx) {
-    return handleRequest(request, env);
-  }
+export async function onRequest(context) {
+  const { request, env } = context; // 获取请求和环境变量
+  return handleRequest(request, env);
 }
 
 // 记录当前的服务器索引
